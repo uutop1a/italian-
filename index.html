@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Итальянский — карточки слов</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;display:flex;align-items:center;justify-content:center}
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+#box{background:#fff;border-radius:16px;width:100%;max-width:420px;padding:24px 20px 20px;position:relative}
+#setTitle{font-size:15px;font-weight:700;text-align:center;margin-bottom:14px;color:#222}
+#topRow{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+#counterEl{font-size:12px;color:#888;white-space:nowrap}
+#progWrap{flex:1;height:4px;background:#e0e0e0;border-radius:2px}
+#progBar{height:4px;background:#3a7d44;border-radius:2px;transition:width .3s}
+#stage{position:relative;height:230px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card{position:absolute;width:100%;border-radius:14px;border:1px solid #e0e0e0;background:#fff;padding:28px 20px 20px;cursor:pointer;user-select:none;box-shadow:0 2px 12px rgba(0,0,0,.07);touch-action:pan-y}
+.word{font-size:26px;font-weight:700;text-align:center;color:#222;margin-bottom:6px}
+.trans{font-size:18px;font-weight:600;color:#0F6E56;text-align:center;margin-top:10px;opacity:0;transition:opacity .2s;min-height:28px}
+.trans.show{opacity:1}
+.readEl{font-size:13px;color:#888;text-align:center;margin-top:6px;opacity:0;transition:opacity .2s;min-height:20px}
+.readEl.show{opacity:1}
+.tapHint{font-size:12px;color:#aaa;text-align:center;margin-top:14px;transition:opacity .2s}
+.tapHint.hide{opacity:0}
+.swipeHint{font-size:11px;color:#bbb;text-align:center;margin-top:8px;opacity:0;transition:opacity .3s}
+.swipeHint.show{opacity:1}
+#doneBox{text-align:center;padding:20px 0}
+#doneBox p{color:#666;font-size:14px;margin-bottom:16px}
+#restartBtn{background:#3a7d44;color:#fff;border:none;border-radius:10px;padding:10px 28px;font-size:14px;cursor:pointer}
+#menuPage{background:#fff;border-radius:16px;width:100%;max-width:440px;padding:28px 20px}
+#menuPage h1{font-size:18px;font-weight:700;text-align:center;margin-bottom:6px;color:#222}
+#menuPage p{font-size:13px;color:#888;text-align:center;margin-bottom:20px}
+.setBtn{display:block;width:100%;background:#f9f9f9;border:1px solid #e5e5e5;border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:14px;color:#222;cursor:pointer;text-align:left;transition:background .15s}
+.setBtn:hover{background:#eef7f1}
+.setNum{display:inline-block;width:24px;height:24px;border-radius:50%;background:#3a7d44;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:24px;margin-right:10px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <div id="menuPage" style="display:none"></div>
+  <div id="box" style="display:none">
+    <div id="setTitle"></div>
+    <div id="topRow">
+      <span id="counterEl"></span>
+      <div id="progWrap"><div id="progBar"></div></div>
+    </div>
+    <div id="stage"></div>
+  </div>
+</div>
+
+<script>
+var SETS=[
+  {
+    name:"Приветствия и полезные фразы",
+    cards:[
+      {it:"Buongiorno",ru:"Здравствуйте",read:"бонджорно"},
+      {it:"Buonasera",ru:"Добрый вечер",read:"бонасера"},
+      {it:"Buonanotte",ru:"Доброй ночи / Спокойной ночи",read:"бонаноттэ"},
+      {it:"Ciao",ru:"Привет (неформ.) / Пока (неформ.)",read:"чао"},
+      {it:"Salve",ru:"Здорово (очень неформ.)",read:"сальвэ"},
+      {it:"Arrivederci",ru:"До свидания",read:"арриведерчи"},
+      {it:"A presto",ru:"До скорого",read:"а прэсто"},
+      {it:"A domani",ru:"До завтра",read:"а домани"},
+      {it:"Piacere",ru:"Рад(а) познакомиться",read:"пьячере"},
+      {it:"Come sta?",ru:"Как дела? (форм.)",read:"комэ ста?"},
+      {it:"Come stai?",ru:"Как дела? (неформ.)",read:"комэ стай?"},
+      {it:"Bene, grazie",ru:"Хорошо, спасибо",read:"бэнэ, грацие"},
+      {it:"Molto bene",ru:"Отлично",read:"молто бэнэ"},
+      {it:"Così così",ru:"Так себе",read:"кози кози"},
+      {it:"Sì",ru:"Да",read:"си"},
+      {it:"No",ru:"Нет",read:"но"},
+      {it:"Prego",ru:"Пожалуйста (ответ на спасибо)",read:"прэго"},
+      {it:"Per favore",ru:"Пожалуйста (просьба)",read:"пэр фаворэ"},
+      {it:"Grazie",ru:"Спасибо",read:"грацие"},
+      {it:"Grazie mille",ru:"Большое спасибо",read:"грацие миллэ"},
+      {it:"Ecco",ru:"Пожалуйста (вот, держите)",read:"экко"},
+      {it:"Scusi",ru:"Извините (привлечь внимание)",read:"скузи"},
+      {it:"Mi scusi",ru:"Простите (извинение)",read:"ми скузи"},
+      {it:"Non importa",ru:"Ничего страшного",read:"нон импорта"},
+      {it:"Di niente",ru:"Не за что",read:"ди ньентэ"},
+      {it:"Scusi, non ho capito",ru:"Извините, я не понял",read:"скузи, нон о капито"},
+      {it:"Ripeta, per favore",ru:"Повторите, пожалуйста",read:"рипэта, пэр фаворэ"},
+      {it:"Parli più lentamente",ru:"Говорите медленнее",read:"парли пью лэнтамэнтэ"},
+      {it:"Parla russo?",ru:"Вы говорите по-русски?",read:"парла руссо?"},
+      {it:"Non parlo italiano",ru:"Я не говорю по-итальянски",read:"нон парло итальяно"},
+      {it:"Parla inglese?",ru:"Вы говорите по-английски?",read:"парла инглээзэ?"},
+      {it:"Quanto costa?",ru:"Сколько это стоит?",read:"куанто коста?"},
+      {it:"Dove si trova...?",ru:"Где находится...?",read:"довэ си това...?"},
+      {it:"Aiuto!",ru:"Помогите!",read:"аюто!"},
+      {it:"Va bene",ru:"Хорошо",read:"ва бэнэ"},
+      {it:"D'accordo",ru:"Ладно, договорились",read:"даккордо"},
+      {it:"Certo",ru:"Конечно",read:"чэрто"},
+      {it:"Forse",ru:"Возможно",read:"форсэ"},
+      {it:"Mi piace",ru:"Мне нравится",read:"ми пьяче"},
+      {it:"Buono!",ru:"Вкусно!",read:"буоно"},
+      {it:"Bello!",ru:"Красиво!",read:"бэлло"}
+    ]
+  },
+  {
+    name:"В аэропорту и на таможне",
+    cards:[
+      {it:"Dove è il check-in per il volo...?",ru:"Где регистрация на рейс...?",read:"довэ э иль чэк-ин пэр иль воло...?"},
+      {it:"Ho la carta d'imbarco elettronica",ru:"У меня электронный посадочный",read:"о ла карта димбарко элэттроника"},
+      {it:"Ecco il mio passaporto",ru:"Вот мой паспорт",read:"экко иль мио пассапорто"},
+      {it:"Devo lasciare il bagaglio",ru:"Мне нужно сдать багаж",read:"дэво лашшарэ иль багальо"},
+      {it:"Ho solo bagaglio a mano",ru:"У меня только ручная кладь",read:"о соло багальо а мано"},
+      {it:"Quanto pesa la mia valigia?",ru:"Сколько весит мой чемодан?",read:"куанто пэза ла миа валиджа?"},
+      {it:"Posso avere un posto vicino al finestrino?",ru:"Можно место у окна?",read:"поссо авэрэ ун посто вичино аль финэстрино?"},
+      {it:"Posso avere un posto vicino al corridoio?",ru:"Можно место у прохода?",read:"поссо авэрэ ун посто вичино аль корридойо?"},
+      {it:"Ecco la mia carta d'imbarco",ru:"Вот моя посадочная карта",read:"экко ла миа карта димбарко"},
+      {it:"Dove è l'uscita per l'imbarco?",ru:"Где выход на посадку?",read:"довэ э л'ушита пэр лимбарко?"},
+      {it:"Il mio volo è in ritardo?",ru:"Мой рейс задерживается?",read:"иль мио воло э ин ритардо?"},
+      {it:"Il mio volo è cancellato?",ru:"Мой рейс отменён?",read:"иль мио воло э канчэллято?"},
+      {it:"Non ho nulla da dichiarare",ru:"У меня нечего декларировать",read:"нон о нулла да дикьярарэ"},
+      {it:"Porto cose per me",ru:"Я везу вещи для себя",read:"порто козэ пэр мэ"},
+      {it:"Quanto alcol posso portare?",ru:"Сколько алкоголя можно?",read:"куанто алколь поссо портарэ?"},
+      {it:"Quante sigarette posso portare?",ru:"Сколько сигарет можно?",read:"куантэ сигарэттэ поссо портарэ?"},
+      {it:"Sono regali",ru:"Это подарки",read:"соно рэгали"},
+      {it:"È per uso personale",ru:"Это для личного пользования",read:"э пэр узо персоналэ"},
+      {it:"Ho una ricetta per i medicinali",ru:"У меня есть рецепт на лекарства",read:"о уна ричэтта пэр и мэдичинали"},
+      {it:"Dove è l'uscita per la città?",ru:"Где выход в город?",read:"довэ э л'ушита пэр ла читта?"},
+      {it:"Dove sono i taxi?",ru:"Где стоянка такси?",read:"довэ соно и такси?"},
+      {it:"Dove è l'autobus per il centro?",ru:"Где автобус до центра?",read:"довэ э л'аутобус пэр иль чэнтро?"},
+      {it:"Dove è il treno/la metropolitana?",ru:"Где поезд/метро?",read:"довэ э иль трэно / ла мэтрополитана?"},
+      {it:"Quanto tempo per arrivare in centro?",ru:"Сколько ехать до центра?",read:"куанто тэмпо пэр арриварэ ин чэнтро?"},
+      {it:"Hanno perso il mio bagaglio",ru:"Мой багаж потеряли",read:"анно персо иль мио багальо"},
+      {it:"Dove è l'ufficio oggetti smarriti?",ru:"Где бюро находок?",read:"довэ э луффичо оджэтти смаррити?"},
+      {it:"Il mio volo è in ritardo di... ore",ru:"Мой рейс задержан на... часов",read:"иль мио воло э ин ритардо ди... орэ"},
+      {it:"Ho bisogno di aiuto",ru:"Мне нужна помощь",read:"о бизоньо ди аюто"},
+      {it:"Dove è l'ufficio della compagnia aerea?",ru:"Где представительство авиакомпании?",read:"довэ э луффичо дэлла компанья аэрэа?"},
+      {it:"Dove posso comprare il biglietto?",ru:"Где купить билет?",read:"довэ поссо компрарэ иль бильетто?"},
+      {it:"Un biglietto per...",ru:"Один билет до...",read:"ун бильетто пэр..."},
+      {it:"Due biglietti",ru:"Два билета",read:"дуэ бильетти"},
+      {it:"Biglietto di sola andata",ru:"Билет в один конец",read:"бильетто ди сола анdata"},
+      {it:"Biglietto di andata e ritorno",ru:"Билет туда-обратно",read:"бильетто ди андата э риторно"},
+      {it:"C'è uno sconto per studenti?",ru:"Есть скидка для студентов?",read:"чэ уно сконто пэр студэнти?"},
+      {it:"C'è uno sconto per pensionati?",ru:"Есть скидка для пенсионеров?",read:"чэ уно сконто пэр пэнсионати?"},
+      {it:"Dove devo timbrare il biglietto?",ru:"Где компостировать билет?",read:"довэ дэво тимбрарэ иль бильетто?"},
+      {it:"Ho un biglietto per oggi",ru:"У меня билет на сегодня",read:"о ун бильетто пэр оджи"},
+      {it:"Dove è la stazione?",ru:"Где находится вокзал?",read:"довэ э ла стационэ?"},
+      {it:"Dove è la fermata dell'autobus?",ru:"Где остановка автобуса?",read:"довэ э ла фэрмата дэль аутобус?"},
+      {it:"Dove è la stazione della metropolitana?",ru:"Где станция метро?",read:"довэ э ла стационэ дэлла мэтрополитана?"},
+      {it:"Come si arriva al binario...?",ru:"Как пройти к платформе номер...?",read:"комэ си аррива аль бинарио...?"},
+      {it:"Quale autobus va a...?",ru:"Какой автобус едет до...?",read:"куалэ аутобус ва а...?"},
+      {it:"Quale tram va a...?",ru:"На каком трамвае доехать до...?",read:"куалэ трам ва а...?"},
+      {it:"Questo autobus va a...?",ru:"Это автобус до...?",read:"куэсто аутобус ва а...?"},
+      {it:"Autobus",ru:"Автобус",read:"аутобус"},
+      {it:"Tram",ru:"Трамвай",read:"трам"},
+      {it:"Metropolitana (Metrò)",ru:"Метро",read:"мэтрополитана (мэтро)"},
+      {it:"Treno",ru:"Поезд",read:"трэно"},
+      {it:"Taxi",ru:"Такси",read:"такси"},
+      {it:"Traghetto",ru:"Паром",read:"трагэтто"},
+      {it:"Vaporetto",ru:"Водный автобус (в Венеции)",read:"вапорэтто"},
+      {it:"Gondola",ru:"Гондола",read:"гондола"},
+      {it:"Regionale",ru:"Электричка (пригородная)",read:"рэджоналэ"},
+      {it:"Frecciarossa / Italo",ru:"Скоростной поезд",read:"фрэччаросса / итало"},
+      {it:"Dove posso noleggiare una macchina?",ru:"Где взять машину напрокат?",read:"довэ поссо нолэджарэ уна маккина?"},
+      {it:"Quanto costa al giorno?",ru:"Сколько стоит аренда в день?",read:"куанто коста аль джорно?"},
+      {it:"Vorrei una macchina piccola",ru:"Хочу маленькую машину",read:"воррэй уна маккина пиккола"},
+      {it:"Ho bisogno dell'assicurazione",ru:"Нужна страховка",read:"о бизоньо дэлассcурационэ"},
+      {it:"Posso restituire la macchina in un'altra città?",ru:"Можно сдать машину в другом городе?",read:"поссо рэституирэ ла маккина ин уналтра читта?"},
+      {it:"Ho la patente",ru:"У меня есть водительские права",read:"о ла патэнтэ"},
+      {it:"Ho bisogno di un seggiolino per bambini",ru:"Мне нужен детский стул",read:"о бизоньо ди ун сэджолино пэр бамбини"},
+      {it:"Dov'è il benzinaio più vicino?",ru:"Где ближайшая заправка?",read:"довэ иль бэнзинайо пью вичино?"},
+      {it:"Il pieno, per favore",ru:"Заправьте полный бак, пожалуйста",read:"иль пьено, пэр фаворэ"},
+      {it:"Benzina",ru:"Бензин",read:"бэнзина"},
+      {it:"Diesel",ru:"Дизель",read:"дизэль"},
+      {it:"Dove posso parcheggiare?",ru:"Где можно припарковаться?",read:"довэ поссо паркэджарэ?"},
+      {it:"La mia macchina si è rotta",ru:"У меня сломалась машина",read:"ла миа маккина си э ротта"},
+      {it:"Ho bisogno di un carro attrezzi",ru:"Нужен буксир",read:"о бизоньо ди ун карро аттрэцци"}
+    ]
+  },
+  {
+    name:"Отель и размещение",
+    cards:[
+      {it:"Ho una prenotazione",ru:"У меня забронирован номер",read:"о уна прэнотационэ"},
+      {it:"Ho prenotato online",ru:"Я бронировал через интернет",read:"о прэнотато онлайн"},
+      {it:"Mi chiamo...",ru:"Меня зовут...",read:"ми кьямо..."},
+      {it:"Ecco il mio passaporto",ru:"Вот мой паспорт",read:"экко иль мио пассапорто"},
+      {it:"La mia camera è pronta?",ru:"Мой номер готов?",read:"ла миа камэра э пронта?"},
+      {it:"Avete camere libere?",ru:"Есть свободные номера?",read:"авэтэ камэрэ либэрэ?"},
+      {it:"Vorrei una camera singola/doppia",ru:"Мне нужен номер на одного/двоих",read:"воррэй уна камэра сингола / доппья"},
+      {it:"Per quante notti?",ru:"На сколько ночей?",read:"пэр куантэ нотти?"},
+      {it:"Per tre notti",ru:"На три ночи",read:"пэр трэ нотти"},
+      {it:"Con colazione?",ru:"С завтраком?",read:"кон колационэ?"},
+      {it:"Posso avere una camera con vista mare?",ru:"Можно номер с видом на море?",read:"поссо авэрэ уна камэра кон виста марэ?"},
+      {it:"Posso avere una camera silenziosa?",ru:"Можно тихий номер?",read:"поссо авэрэ уна камэра силенциоза?"},
+      {it:"Dov'è l'ascensore?",ru:"Где лифт?",read:"довэ л'ашэнсорэ?"},
+      {it:"Qual è il mio numero di camera?",ru:"Какой у меня номер?",read:"куал э иль мио нумэро ди камэра?"},
+      {it:"Mi dà la chiave/la carta, per favore",ru:"Дайте ключ/карточку, пожалуйста",read:"ми да ла кьявэ / ла карта, пэр фаворэ"},
+      {it:"Il Wi-Fi funziona?",ru:"Работает ли Wi-Fi?",read:"иль вай-фай функциона?"},
+      {it:"Qual è la password del Wi-Fi?",ru:"Какой пароль от Wi-Fi?",read:"куал э ла пасворд дэль вай-фай?"},
+      {it:"...il condizionatore non funziona",ru:"...кондиционер не работает",read:"иль кондиционаторэ нон функциона"},
+      {it:"...la doccia non funziona",ru:"...душ не работает",read:"ла дочча нон функциона"},
+      {it:"...il water / il bagno non funziona",ru:"...туалет не работает",read:"иль ватэр / иль баньо нон функциона"},
+      {it:"...la luce non funziona",ru:"...свет не работает",read:"ла лучэ нон функциона"},
+      {it:"Potete portare degli asciugamani?",ru:"Можно принести полотенца?",read:"потэтэ портарэ дэльи ашшугамани?"},
+      {it:"Potete cambiare le lenzuola?",ru:"Можно поменять постельное бельё?",read:"потэтэ камбьярэ лэ лэнцуола?"},
+      {it:"A che ora è la colazione?",ru:"В какое время завтрак?",read:"а кэ ора э ла колационэ?"},
+      {it:"Posso ordinare la cena in camera?",ru:"Можно заказать ужин в номер?",read:"поссо ординара ла чэна ин камэра?"},
+      {it:"Mi sveglia alle 8 del mattino, per favore",ru:"Разбудите меня в 8 утра",read:"ми свэлья аллэ 8 дэль маттино, пэр фаворэ"},
+      {it:"C'è una lavanderia?",ru:"Есть прачечная?",read:"чэ уна лавандэриа?"},
+      {it:"Dove posso lasciare le valigie dopo il check-out?",ru:"Где оставить чемоданы после выселения?",read:"довэ поссо лашшарэ ла валиджэ допо иль чэк-аут?"},
+      {it:"Posso estendere il soggiorno?",ru:"Можно продлить проживание?",read:"поссо эстэндэрэ иль соджжорно?"},
+      {it:"Faccio il check-out oggi",ru:"Я выселяюсь сегодня",read:"фачио иль чэк-аут оджи"},
+      {it:"A che ora devo lasciare la camera?",ru:"В какое время освободить номер?",read:"а кэ ора дэво лашшарэ ла камэра?"},
+      {it:"Posso pagare con la carta?",ru:"Можно оплатить картой?",read:"поссо пагарэ кон ла карта?"},
+      {it:"Posso pagare in contanti?",ru:"Можно оплатить наличными?",read:"поссо пагарэ ин контанти?"},
+      {it:"Il conto, per favore",ru:"Счёт, пожалуйста",read:"иль конто, пэр фаворэ"},
+      {it:"C'è un errore nel conto, credo",ru:"Кажется, ошибка в счёте",read:"чэ ун эррорэ нэль конто, крэдо"},
+      {it:"È stato tutto perfetto, grazie",ru:"Всё было отлично, спасибо",read:"э стато тутто пэрфэтто, грацие"}
+    ]
+  },
+  {
+    name:"Рестораны, кафе и еда",
+    cards:[
+      {it:"Un tavolo per due, per favore",ru:"Столик на двоих, пожалуйста",read:"ун таволо пэр дуэ, пэр фаворэ"},
+      {it:"Abbiamo una prenotazione a nome di...",ru:"У нас бронь на имя...",read:"аббьямо уна прэнотационэ а номэ ди..."},
+      {it:"Avete posti liberi?",ru:"Есть свободные места?",read:"авэтэ пости либэри?"},
+      {it:"Possiamo sederci vicino alla finestra?",ru:"Можно сесть у окна?",read:"поссьямо сэдэрчи вичино алла финэстра?"},
+      {it:"Possiamo sederci fuori?",ru:"Можно на улице?",read:"поссьямо сэдэрчи фуори?"},
+      {it:"Per quante persone?",ru:"На сколько человек?",read:"пэр куантэ пэрсона?"},
+      {it:"Arriviamo tra 10 minuti",ru:"Мы будем через 10 минут",read:"арривьямо тра диэчи минути"},
+      {it:"Posso avere il menu, per favore?",ru:"Можно меню, пожалуйста?",read:"поссо авэрэ иль мэню, пэр фаворэ?"},
+      {it:"Cosa ci consiglia?",ru:"Что вы посоветуете?",read:"коза ча консилья?"},
+      {it:"Cos'è questo piatto?",ru:"Что это за блюдо?",read:"козэ куэсто пьятто?"},
+      {it:"Avete un menu in russo/inglese?",ru:"Есть меню на русском/английском?",read:"авэтэ ун мэню ин руссо / инглээзэ?"},
+      {it:"Prendo questo",ru:"Я буду это",read:"прэндо куэсто"},
+      {it:"Prendo come lui/lei",ru:"Я буду как он/она",read:"прэндо комэ луй / лэй"},
+      {it:"Un piatto per due, per favore",ru:"Одно блюдо на двоих",read:"ун пьятто пэр дуэ, пэр фаворэ"},
+      {it:"Posso avere un altro po'?",ru:"Можно добавку?",read:"поссо авэрэ ун альтро по?"},
+      {it:"Aperitivo",ru:"Аперитив (закуска перед едой)",read:"апэритиво"},
+      {it:"Antipasti",ru:"Закуски (перед пастой)",read:"антипасти"},
+      {it:"Primo",ru:"Первое блюдо (паста, ризотто, суп)",read:"примо"},
+      {it:"Secondo",ru:"Второе блюдо (мясо/рыба)",read:"сэкондо"},
+      {it:"Contorno",ru:"Гарнир",read:"конторно"},
+      {it:"Dolce",ru:"Десерт",read:"дольчэ"},
+      {it:"Caffè",ru:"Кофе",read:"каффэ"},
+      {it:"Pane",ru:"Хлеб",read:"панэ"},
+      {it:"Acqua",ru:"Вода",read:"аккваа"},
+      {it:"Conto",ru:"Счёт",read:"конто"},
+      {it:"Mancia",ru:"Чаевые",read:"манча"},
+      {it:"Acqua frizzante / gassata",ru:"Вода газированная",read:"аккваа фриццантэ / рассата"},
+      {it:"Acqua naturale / liscia",ru:"Вода негазированная",read:"аккваа натуралэ / лиша"},
+      {it:"Vino rosso/bianco",ru:"Красное/белое вино",read:"вино россо / бьянко"},
+      {it:"Un bicchiere di vino",ru:"Бокал вина",read:"ун биккьерэ ди вино"},
+      {it:"Birra",ru:"Пиво",read:"бирра"},
+      {it:"Succo",ru:"Сок",read:"сукко"},
+      {it:"Aperol Spritz",ru:"Аперол Шприц",read:"апэро ль шприц"},
+      {it:"Cappuccino",ru:"Капучино (только до обеда)",read:"каппуччино"},
+      {it:"Espresso",ru:"Эспрессо",read:"эспрэссо"},
+      {it:"Cioccolata calda",ru:"Горячий шоколад",read:"чокколата кальда"},
+      {it:"Sono vegetariano/a",ru:"Я вегетарианец/вегетарианка",read:"соно вэдэтариано / вэдэтариана"},
+      {it:"Sono vegano/a",ru:"Я веган",read:"соно вэгано / вэгана"},
+      {it:"Sono allergico/a a...",ru:"У меня аллергия на...",read:"соно аллэрджико / аллэрджика а..."},
+      {it:"...noci",ru:"...орехи",read:"ночи"},
+      {it:"...glutine",ru:"...глютен",read:"глютинэ"},
+      {it:"...lattosio",ru:"...лактозу",read:"латтозио"},
+      {it:"...frutti di mare",ru:"...морепродукты",read:"фрутти ди марэ"},
+      {it:"Senza formaggio, per favore",ru:"Без сыра, пожалуйста",read:"сэнца формаджо, пэр фаворэ"},
+      {it:"Poco sale",ru:"Поменьше соли",read:"поко салэ"},
+      {it:"Senza ghiaccio",ru:"Без льда",read:"сэнца гьяччо"},
+      {it:"Aspettiamo da 20 minuti",ru:"Мы ждём уже 20 минут",read:"аспэттьямо да вэнти минути"},
+      {it:"Non ho ordinato questo",ru:"Я не это заказывал",read:"нон о ординато куэсто"},
+      {it:"Mi porta sale/pepe, per favore?",ru:"Принесите соль/перец, пожалуйста",read:"ми порта салэ / пэпэ, пэр фаворэ?"},
+      {it:"Il conto, per favore",ru:"Счёт, пожалуйста",read:"иль конто, пэр фаворэ"},
+      {it:"Il servizio è incluso?",ru:"Чаевые включены?",read:"иль сэрвицио э инклюзо?"},
+      {it:"Era tutto buonissimo",ru:"Всё было очень вкусно",read:"эра тутто буониссимо"},
+      {it:"Chiamate il manager, per favore",ru:"Позовите менеджера, пожалуйста",read:"кьяматэ иль мэнаджэр, пэр фаворэ"}
+    ]
+  },
+  {
+    name:"Магазины и покупки",
+    cards:[
+      {it:"Quanto costa?",ru:"Сколько это стоит?",read:"куанто коста?"},
+      {it:"È troppo caro",ru:"Это слишком дорого",read:"э троппо каро"},
+      {it:"C'è qualcosa di più economico?",ru:"Можно подешевле?",read:"чэ куалькоза ди пью экономико?"},
+      {it:"Avete la taglia...?",ru:"У вас есть размер...?",read:"авэтэ ла талья...?"},
+      {it:"Dove è il camerino?",ru:"Где примерочная?",read:"довэ э иль камэрино?"},
+      {it:"Posso provare?",ru:"Можно померить?",read:"поссо проварэ?"},
+      {it:"Mi serve una taglia più piccola",ru:"Мне нужно поменьше",read:"ми сэрвэ уна талья пью пиккола"},
+      {it:"Mi serve una taglia più grande",ru:"Мне нужно побольше",read:"ми сэрвэ уна талья пью грандэ"},
+      {it:"Lo prendo",ru:"Я беру это",read:"ло прэндо"},
+      {it:"No, grazie, guardo e basta",ru:"Нет, спасибо, просто смотрю",read:"но, грацие, гуардо э баста"},
+      {it:"Potete metterlo da parte fino a domani?",ru:"Можете отложить до завтра?",read:"потэтэ мэттэрло да партэ фино а домани?"},
+      {it:"Dove è la cassa?",ru:"Где находится касса?",read:"довэ э ла касса?"},
+      {it:"Posso pagare con la carta?",ru:"Можно оплатить картой?",read:"поссо пагарэ кон ла карта?"},
+      {it:"Posso pagare in contanti?",ru:"Можно наличными?",read:"поссо пагарэ ин контанти?"},
+      {it:"Posso avere lo scontrino?",ru:"Можно чек?",read:"поссо авэрэ ло сконтрино?"},
+      {it:"Può farmi la fattura?",ru:"Можно фактуру (для Tax Free)?",read:"пуо фарми ла фаттура?"},
+      {it:"Avete una carta fedeltà?",ru:"У вас есть скидочная карта?",read:"авэтэ уна карта фадэльта?"},
+      {it:"C'è uno sconto?",ru:"Есть скидка?",read:"чэ уно сконто?"},
+      {it:"Sono turista, posso avere il Tax Free?",ru:"Я турист, могу получить Tax Free?",read:"соно туриста, поссо авэрэ иль такс фри?"},
+      {it:"L'importo è superiore a 155 euro?",ru:"Сумма покупки больше 155 евро?",read:"лимпорто э супэриорэ а 155 эуро?"},
+      {it:"Dov'è l'ufficio Tax Free?",ru:"Где Tax Free офис?",read:"довэ луффичо такс фри?"},
+      {it:"Compila il modulo, per favore",ru:"Заполните форму, пожалуйста",read:"компила иль модуло, пэр фаворэ"},
+      {it:"Dove timbrare in dogana?",ru:"Где поставить штамп на таможне?",read:"довэ тимбрарэ ин догана?"}
+    ]
+  },
+  {
+    name:"Достопримечательности и музеи",
+    cards:[
+      {it:"Dove si compra il biglietto per il museo?",ru:"Где купить билет в музей?",read:"довэ си компра иль бильетто пэр иль музэо?"},
+      {it:"Un biglietto per adulto/bambino",ru:"Билет для взрослого/ребёнка",read:"ун бильетто пэр адулто / бамбино"},
+      {it:"Bisogna prenotare in anticipo?",ru:"Нужно бронировать заранее?",read:"бизонья прэнотарэ ин античипо?"},
+      {it:"Ci sono giorni gratis?",ru:"Есть бесплатные дни?",read:"чи соно джорни гратис?"},
+      {it:"Quando è aperto/chiuso?",ru:"Когда открыто/закрыто?",read:"куандо э апэрто / кьюзо?"},
+      {it:"L'ingresso è gratuito per studenti?",ru:"Вход бесплатный для студентов?",read:"лингрэссо э гратуито пэр студэнти?"},
+      {it:"Dov'è il bagno?",ru:"Где туалет?",read:"довэ иль баньо?"},
+      {it:"Dov'è il guardaroba?",ru:"Где гардероб?",read:"довэ иль гуардароба?"},
+      {it:"Dov'è il caffè?",ru:"Где кафе?",read:"довэ иль каффэ?"},
+      {it:"Dov'è la sala con...?",ru:"Где зал с...?",read:"довэ ла сала кон...?"},
+      {it:"Dov'è l'uscita?",ru:"Где выход?",read:"довэ л'ушита?"},
+      {it:"C'è una visita guidata in russo?",ru:"Есть экскурсия на русском?",read:"чэ уна визита гуидата ин руссо?"},
+      {it:"Dove prendo l'audioguida?",ru:"Где взять аудиогид?",read:"довэ прэндо л'аудигуида?"},
+      {it:"Quanto costa l'audioguida?",ru:"Сколько стоит аудиогид?",read:"куанто коста л'аудигуида?"},
+      {it:"Quando inizia la visita guidata?",ru:"Когда начинается экскурсия?",read:"куандо иниция ла визита гуидата?"},
+      {it:"Si possono fare foto?",ru:"Можно фотографировать?",read:"си поссоно фарэ фото?"},
+      {it:"Bisogna coprire spalle e ginocchia",ru:"Нужно закрыть плечи и колени",read:"бизонья коприрэ спаллэ э джиноккья"},
+      {it:"A che ora è la messa?",ru:"Когда месса?",read:"а кэ ора э ла мэсса?"},
+      {it:"Dov'è il belvedere?",ru:"Где смотровая площадка?",read:"довэ иль бэльвэдэрэ?"},
+      {it:"Si può nuotare qui?",ru:"Можно купаться здесь?",read:"си пуо нуотарэ куи?"},
+      {it:"C'è un sentiero?",ru:"Есть пешеходный маршрут?",read:"чэ ун сэнтьеро?"},
+      {it:"Dove si restituiscono i biglietti?",ru:"Где касса возврата билетов?",read:"довэ си рэституисконо и бильетти?"},
+      {it:"Il museo è chiuso per restauro",ru:"Музей закрыт на реставрацию",read:"иль музэо э кьюзо пэр рэстауро"},
+      {it:"Mi hanno rubato il biglietto",ru:"У меня украли билет",read:"ми анно рубато иль бильетто"}
+    ]
+  },
+  {
+    name:"Прогулка и разговор с иностранцами",
+    cards:[
+      {it:"Scusi, mi può aiutare?",ru:"Извините, вы не подскажете?",read:"скузи, ми пуо аютарэ?"},
+      {it:"È di qui?",ru:"Вы местный?",read:"э ди куи?"},
+      {it:"Parla russo?",ru:"Вы говорите по-русски?",read:"парла руссо?"},
+      {it:"Sono dalla Russia",ru:"Я из России",read:"соно далла руссиа"},
+      {it:"Bel tempo, vero?",ru:"Прекрасная погода, правда?",read:"бэль тэмпо, вэро?"},
+      {it:"Mi scusi per il disturbo",ru:"Извините за беспокойство",read:"ми скузи пэр иль дистурбо"},
+      {it:"Posso fare una foto con lei?",ru:"Можно с вами сфотографироваться?",read:"поссо фарэ уна фото кон лэй?"},
+      {it:"Grazie per l'aiuto!",ru:"Спасибо за помощь!",read:"грацие пэр л'аюто!"}
+    ]
+  },
+  {
+    name:"Здоровье",
+    cards:[
+      {it:"Dov'è la farmacia più vicina?",ru:"Где ближайшая аптека?",read:"довэ ла фармачиа пью вичина?"},
+      {it:"Ho mal di testa / di pancia",ru:"У меня болит голова/живот",read:"о маль ди тэста / ди панча"},
+      {it:"Qualcosa per il raffreddore",ru:"Что-нибудь от простуды",read:"куалькоза пэр иль раффрэддорэ"},
+      {it:"Ho bisogno di un antistaminico",ru:"Мне нужно лекарство от аллергии",read:"о бизоньо ди ун антистаминико"},
+      {it:"Ho la febbre",ru:"У меня температура",read:"о ла фэббрэ"},
+      {it:"Un cerotto, per favore",ru:"Пластырь, пожалуйста",read:"ун чэротто, пэр фаворэ"},
+      {it:"Ho bisogno di un medico",ru:"Мне нужен врач",read:"о бизоньо ди ун мэдико"},
+      {it:"Chiami un'ambulanza",ru:"Вызовите скорую",read:"кьями унамбуланца"},
+      {it:"Dov'è l'ospedale?",ru:"Где больница?",read:"довэ л'оспэдалэ?"},
+      {it:"Mi fa male qui",ru:"У меня болит здесь",read:"ми фа малэ куи"},
+      {it:"Ho un'assicurazione",ru:"У меня есть страховка",read:"о унасссурационэ"}
+    ]
+  },
+  {
+    name:"Экстренная ситуация",
+    cards:[
+      {it:"Chiami la polizia!",ru:"Позвоните полиции!",read:"кьями ла полициа!"},
+      {it:"Dov'è il commissariato?",ru:"Где полицейский участок?",read:"довэ иль коммиссариато?"},
+      {it:"Ho perso il passaporto",ru:"Я потерял паспорт",read:"о персо иль пассапорто"},
+      {it:"Sono stato derubato",ru:"Меня обокрали",read:"соно стато дэрубато"},
+      {it:"Dov'è il consolato russo?",ru:"Где российское консульство?",read:"довэ иль консолато руссо?"},
+      {it:"Al fuoco!",ru:"Пожар!",read:"аль фуоко!"},
+      {it:"Aiuto!",ru:"На помощь!",read:"аюто!"},
+      {it:"Chiami i vigili del fuoco!",ru:"Вызовите пожарных!",read:"кьями и виджили дэль фуоко!"},
+      {it:"Dov'è il telefono più vicino?",ru:"Где ближайший телефон?",read:"довэ иль тэлэфоно пью вичино?"}
+    ]
+  },
+  {
+    name:"Мини-словарь",
+    cards:[
+      {it:"Zero",ru:"0",read:"дзэро"},{it:"Uno",ru:"1",read:"уно"},{it:"Due",ru:"2",read:"дуэ"},{it:"Tre",ru:"3",read:"трэ"},{it:"Quattro",ru:"4",read:"куаттро"},{it:"Cinque",ru:"5",read:"чинкуэ"},{it:"Sei",ru:"6",read:"сэй"},{it:"Sette",ru:"7",read:"сэттэ"},{it:"Otto",ru:"8",read:"отто"},{it:"Nove",ru:"9",read:"новэ"},{it:"Dieci",ru:"10",read:"дьечи"},{it:"Undici",ru:"11",read:"ундичи"},{it:"Dodici",ru:"12",read:"додичи"},{it:"Tredici",ru:"13",read:"трэдичи"},{it:"Quattordici",ru:"14",read:"куаттордичи"},{it:"Quindici",ru:"15",read:"куиндичи"},{it:"Sedici",ru:"16",read:"сэдичи"},{it:"Diciassette",ru:"17",read:"дичассэттэ"},{it:"Diciotto",ru:"18",read:"дичотто"},{it:"Diciannove",ru:"19",read:"дичанновэ"},{it:"Venti",ru:"20",read:"вэнти"},{it:"Trenta",ru:"30",read:"трэнта"},{it:"Quaranta",ru:"40",read:"куаранта"},{it:"Cinquanta",ru:"50",read:"чинкуанта"},{it:"Sessanta",ru:"60",read:"сэссанта"},{it:"Settanta",ru:"70",read:"сэттанта"},{it:"Ottanta",ru:"80",read:"оттанта"},{it:"Novanta",ru:"90",read:"нованта"},{it:"Cento",ru:"100",read:"чэнто"},{it:"Duecento",ru:"200",read:"дуэчэнто"},{it:"Cinquecento",ru:"500",read:"чинкуэчэнто"},{it:"Mille",ru:"1000",read:"миллэ"},{it:"Duemila",ru:"2000",read:"дуэмила"},
+      {it:"Un'ora",ru:"1 час",read:"унора"},{it:"Due ore",ru:"2 часа",read:"дуэ орэ"},{it:"Trenta minuti",ru:"30 минут",read:"трэнта минути"},{it:"Quindici minuti / un quarto",ru:"15 минут",read:"куиндичи минути / ун куарто"},{it:"Mezz'ora",ru:"Полчаса",read:"мэддзора"},{it:"Minuto",ru:"Минута",read:"минуто"},{it:"Secondo",ru:"Секунда",read:"сэкондо"},{it:"Oggi",ru:"Сегодня",read:"оджи"},{it:"Domani",ru:"Завтра",read:"домани"},{it:"Ieri",ru:"Вчера",read:"ери"},{it:"Mattina",ru:"Утро",read:"маттина"},{it:"Pomeriggio",ru:"День",read:"помэриджо"},{it:"Sera",ru:"Вечер",read:"сэра"},{it:"Notte",ru:"Ночь",read:"ноттэ"},{it:"Adesso",ru:"Сейчас",read:"адэссо"},{it:"Dopo",ru:"Потом",read:"допо"},{it:"Presto",ru:"Рано",read:"прэсто"},{it:"Tardi",ru:"Поздно",read:"тарди"},
+      {it:"Aeroporto",ru:"Аэропорт",read:"аэропорто"},{it:"Stazione",ru:"Вокзал (ж/д)",read:"стационэ"},{it:"Autostazione",ru:"Автовокзал",read:"аутостационэ"},{it:"Metropolitana / Metrò",ru:"Станция метро",read:"мэтрополитана / мэтро"},{it:"Fermata",ru:"Остановка (автобуса)",read:"фэрмата"},{it:"Piazza",ru:"Площадь",read:"пьяцца"},{it:"Via",ru:"Улица",read:"виа"},{it:"Vicolo",ru:"Переулок",read:"виколо"},{it:"Ponte",ru:"Мост",read:"понтэ"},{it:"Chiesa",ru:"Церковь",read:"кьеза"},{it:"Duomo / Cattedrale",ru:"Собор",read:"дуомо / каттэдралэ"},{it:"Museo",ru:"Музей",read:"музэо"},{it:"Galleria",ru:"Галерея",read:"галлэриа"},{it:"Pinacoteca",ru:"Картинная галерея",read:"пинакотэка"},{it:"Mostra",ru:"Выставка",read:"мостра"},{it:"Teatro",ru:"Театр",read:"тэатро"},{it:"Opera",ru:"Опера",read:"опэра"},{it:"Parco",ru:"Парк",read:"парко"},{it:"Giardino",ru:"Сад",read:"джардино"},{it:"Spiaggia",ru:"Пляж",read:"спьяджа"},{it:"Lago",ru:"Озеро",read:"лаго"},{it:"Mare",ru:"Море",read:"марэ"},{it:"Montagna",ru:"Гора",read:"монтанья"},{it:"Ristorante",ru:"Ресторан",read:"ристорантэ"},{it:"Bar / Caffè",ru:"Кафе",read:"бар / каффэ"},{it:"Trattoria",ru:"Траттория",read:"траттория"},{it:"Pizzeria",ru:"Пиццерия",read:"пиццэриа"},{it:"Farmacia",ru:"Аптека",read:"фармачиа"},{it:"Ospedale",ru:"Больница",read:"оспэдалэ"},{it:"Polizia",ru:"Полиция",read:"полициа"},{it:"Bagno / Toilette",ru:"Туалет",read:"баньо / туалеттэ"},{it:"Albergo / Hotel",ru:"Гостиница / Отель",read:"альбэрго / отэль"},{it:"Banca",ru:"Банк",read:"банка"},{it:"Cambio",ru:"Обмен валют",read:"камбио"},{it:"Negozio",ru:"Магазин",read:"нэгоцио"},{it:"Mercato",ru:"Рынок",read:"мэркато"},
+      {it:"Biglietto",ru:"Билет",read:"бильетто"},{it:"Passaporto",ru:"Паспорт",read:"пассапорто"},{it:"Valigia",ru:"Чемодан",read:"валиджа"},{it:"Borsa",ru:"Сумка",read:"борса"},{it:"Chiave",ru:"Ключ",read:"кьявэ"},{it:"Mappa",ru:"Карта (географическая)",read:"маппа"},{it:"Carta",ru:"Карта (банковская)",read:"карта"},{it:"Contanti",ru:"Наличные",read:"контанти"},{it:"Soldi",ru:"Деньги",read:"сольди"},{it:"Telefono",ru:"Телефон",read:"тэлэфоно"},{it:"Caricabatterie",ru:"Зарядка (для телефона)",read:"карикабаттэриэ"},{it:"Macchina fotografica",ru:"Фотоаппарат",read:"маккина фотографика"},{it:"Acqua",ru:"Вода",read:"аккваа"},{it:"Cibo",ru:"Еда",read:"чибо"},{it:"Vino",ru:"Вино",read:"вино"},{it:"Caffè",ru:"Кофе",read:"каффэ"},{it:"Souvenir",ru:"Сувенир",read:"сувэнир"},{it:"Regalo",ru:"Подарок",read:"рэгало"},{it:"Ombrello",ru:"Зонт",read:"омбрэлло"},{it:"Occhiali",ru:"Очки",read:"оккьяли"},{it:"Medicina",ru:"Лекарство",read:"мэдичина"},
+      {it:"Persona",ru:"Человек",read:"пэрсона"},{it:"Uomo",ru:"Мужчина",read:"уомо"},{it:"Donna",ru:"Женщина",read:"донна"},{it:"Bambino / Bambina",ru:"Ребёнок",read:"бамбино / бамбина"},{it:"Turista",ru:"Турист",read:"туриста"},{it:"Medico / Dottore",ru:"Врач",read:"мэдико / дотторэ"},{it:"Poliziotto",ru:"Полицейский",read:"полициотто"},{it:"Cameriere",ru:"Официант",read:"камэрьерэ"},{it:"Commesso",ru:"Продавец",read:"коммэссо"},{it:"Autista",ru:"Водитель",read:"аутиста"},
+      {it:"Buono",ru:"Хороший / Вкусный",read:"буоно"},{it:"Cattivo",ru:"Плохой",read:"каттиво"},{it:"Grande",ru:"Большой",read:"грандэ"},{it:"Piccolo",ru:"Маленький",read:"пикколо"},{it:"Caro",ru:"Дорогой",read:"каро"},{it:"Economico",ru:"Дешёвый",read:"экономико"},{it:"Bello",ru:"Красивый",read:"бэлло"},{it:"Caldo",ru:"Горячий",read:"кальдо"},{it:"Freddo",ru:"Холодный",read:"фрэддо"},{it:"Nuovo",ru:"Новый",read:"нуово"},{it:"Vecchio",ru:"Старый",read:"вэккьо"},{it:"Libero",ru:"Свободный (место)",read:"либэро"},{it:"Occupato",ru:"Занятый",read:"оккупато"},{it:"Destro",ru:"Правый",read:"дэстро"},{it:"Sinistro",ru:"Левый",read:"синистро"},{it:"Vicino",ru:"Близко",read:"вичино"},{it:"Lontano",ru:"Далеко",read:"лонтано"},{it:"Aperto",ru:"Открыто",read:"апэрто"},{it:"Chiuso",ru:"Закрыто",read:"кьюзо"},
+      {it:"Dove?",ru:"Где?",read:"довэ?"},{it:"Dove? / Verso dove?",ru:"Куда?",read:"довэ? / вэрсо довэ?"},{it:"Da dove?",ru:"Откуда?",read:"да довэ?"},{it:"Qui / Qua",ru:"Здесь",read:"куи / куа"},{it:"Li / Là",ru:"Там",read:"ли / ла"},{it:"A sinistra",ru:"Слева",read:"а синистра"},{it:"A destra",ru:"Справа",read:"а дэстра"},{it:"Dritto",ru:"Прямо",read:"дритто"},{it:"Indietro",ru:"Назад",read:"индьетро"},{it:"Avanti",ru:"Вперёд",read:"аванти"},{it:"Dentro",ru:"Внутри",read:"дэнтро"},{it:"Fuori",ru:"Снаружи",read:"фуори"},{it:"Vicino a",ru:"Рядом с",read:"вичино а"},{it:"Tra / Fra",ru:"Между",read:"тра / фра"},{it:"Di fronte a",ru:"Напротив",read:"ди фронтэ а"},{it:"Dietro",ru:"За (позади)",read:"дьетро"},{it:"Davanti a",ru:"Перед",read:"даванти а"},
+      {it:"Essere",ru:"Быть",read:"эссэрэ"},{it:"Avere",ru:"Иметь",read:"авэрэ"},{it:"Andare",ru:"Идти / Ехать",read:"андарэ"},{it:"Volere",ru:"Хотеть",read:"волэрэ"},{it:"Potere",ru:"Мочь",read:"потэрэ"},{it:"Parlare",ru:"Говорить",read:"парларэ"},{it:"Capire",ru:"Понимать",read:"капирэ"},{it:"Chiedere",ru:"Спрашивать",read:"кьедэрэ"},{it:"Comprare",ru:"Покупать",read:"компрарэ"},{it:"Pagare",ru:"Платить",read:"пагарэ"},{it:"Mangiare",ru:"Есть (кушать)",read:"манджарэ"},{it:"Bere",ru:"Пить",read:"бэрэ"},{it:"Guardare",ru:"Смотреть",read:"гуардарэ"},{it:"Aiutare",ru:"Помогать",read:"аютарэ"},
+      {it:"Entrata",ru:"Вход",read:"энтрата"},{it:"Uscita",ru:"Выход",read:"ушита"},{it:"Vietato",ru:"Запрещено",read:"вьетато"},{it:"Attenzione",ru:"Осторожно",read:"аттэнционэ"},{it:"Gratis",ru:"Бесплатно",read:"гратис"},{it:"Scontato",ru:"Со скидкой",read:"сконтато"},{it:"Metà",ru:"Наполовину",read:"мэта"},{it:"Ancora",ru:"Ещё",read:"анкора"},{it:"Molto",ru:"Много",read:"молто"},{it:"Poco",ru:"Мало",read:"поко"},{it:"Qualcosa",ru:"Что-нибудь",read:"куалькоза"},{it:"Niente",ru:"Ничего",read:"ньентэ"},{it:"Tutto",ru:"Всё",read:"тутто"},{it:"Nessuno",ru:"Никто",read:"нэссуно"}
+    ]
+  }
+];
+
+var idx=0,flipped=false,dragging=false,startX=0,currentX=0,activeCards=[];
+var menuPage=document.getElementById('menuPage');
+var box=document.getElementById('box');
+var setTitle=document.getElementById('setTitle');
+var counterEl=document.getElementById('counterEl');
+var progBar=document.getElementById('progBar');
+var stage=document.getElementById('stage');
+
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+function showMenu(){
+  box.style.display='none';
+  menuPage.style.display='block';
+  menuPage.innerHTML='<h1>🇮🇹 Итальянский</h1><p>Выберите тему для изучения</p>';
+  SETS.forEach(function(s,i){
+    var btn=document.createElement('button');
+    btn.className='setBtn';
+    btn.innerHTML='<span class="setNum">'+(i+1)+'</span>'+s.name+' <span style="float:right;color:#aaa;font-size:12px">'+s.cards.length+' карт.</span>';
+    btn.onclick=function(){openSet(i);};
+    menuPage.appendChild(btn);
+  });
+}
+
+function openSet(n){
+  menuPage.style.display='none';
+  box.style.display='block';
+  activeCards=shuffle(SETS[n].cards.slice());
+  setTitle.textContent=SETS[n].name;
+  idx=0;
+  renderCard();
+}
+
+function renderCard(){
+  if(idx>=activeCards.length){
+    counterEl.textContent='';
+    progBar.style.width='100%';
+    stage.innerHTML='<div id="doneBox"><p>Все карточки пройдены! 🎉</p><button id="restartBtn">Повторить</button></div>';
+    document.getElementById('restartBtn').onclick=function(){shuffle(activeCards);idx=0;renderCard();};
+    return;
+  }
+  var w=activeCards[idx];
+  var pct=Math.round((idx/activeCards.length)*100);
+  counterEl.textContent=(idx+1)+' / '+activeCards.length;
+  progBar.style.width=pct+'%';
+  stage.innerHTML=
+    '<div class="card" id="itCard">'+
+      '<div class="word">'+w.it+'</div>'+
+      '<div class="trans" id="tr">'+w.ru+'</div>'+
+      '<div class="readEl" id="rd">🔊 '+w.read+'</div>'+
+      '<div class="tapHint" id="th">Нажмите, чтобы увидеть перевод</div>'+
+      '<div class="swipeHint" id="sh">← смахните, чтобы продолжить →</div>'+
+    '</div>';
+  flipped=false;dragging=false;startX=0;currentX=0;
+  bindCard();
+}
+
+function flip(){
+  if(flipped)return;flipped=true;
+  document.getElementById('tr').classList.add('show');
+  document.getElementById('rd').classList.add('show');
+  document.getElementById('th').classList.add('hide');
+  setTimeout(function(){var s=document.getElementById('sh');if(s)s.classList.add('show');},200);
+}
+
+function nextCard(dir){
+  var c=document.getElementById('itCard');
+  if(!c)return;
+  c.style.transition='transform .22s ease,opacity .22s ease';
+  c.style.transform='translateX('+(dir*110)+'%) rotate('+(dir*7)+'deg)';
+  c.style.opacity='0';
+  setTimeout(function(){idx++;renderCard();},210);
+}
+
+function bindCard(){
+  var c=document.getElementById('itCard');
+  if(!c)return;
+  c.addEventListener('click',function(){if(!dragging)flip();dragging=false;});
+  c.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;dragging=false;currentX=0;},{passive:true});
+  c.addEventListener('touchmove',function(e){
+    var dx=e.touches[0].clientX-startX;currentX=dx;
+    if(Math.abs(dx)>8&&flipped){dragging=true;c.style.transition='none';c.style.transform='translateX('+dx+'px) rotate('+(dx*0.05)+'deg)';}
+  },{passive:true});
+  c.addEventListener('touchend',function(){
+    if(dragging&&Math.abs(currentX)>55){nextCard(currentX>0?1:-1);}
+    else if(dragging){c.style.transition='transform .18s';c.style.transform='none';}
+    setTimeout(function(){dragging=false;},40);
+  });
+  var md=false;
+  c.addEventListener('mousedown',function(e){startX=e.clientX;md=true;dragging=false;currentX=0;});
+  function onmm(e){if(!md)return;var dx=e.clientX-startX;currentX=dx;var cc=document.getElementById('itCard');if(!cc){document.removeEventListener('mousemove',onmm);return;}if(Math.abs(dx)>8&&flipped){dragging=true;cc.style.transition='none';cc.style.transform='translateX('+dx+'px) rotate('+(dx*0.05)+'deg)';}}
+  function onmu(){if(!md)return;md=false;var cc=document.getElementById('itCard');if(cc&&dragging&&Math.abs(currentX)>80&&flipped){nextCard(currentX>0?1:-1);}else if(cc&&dragging){cc.style.transition='transform .18s';cc.style.transform='none';}setTimeout(function(){dragging=false;},40);document.removeEventListener('mousemove',onmm);document.removeEventListener('mouseup',onmu);}
+  document.addEventListener('mousemove',onmm);
+  document.addEventListener('mouseup',onmu);
+}
+
+var params=new URLSearchParams(window.location.search);
+var setParam=params.get('set');
+if(setParam!==null){
+  var n=parseInt(setParam)-1;
+  if(n>=0&&n<SETS.length){openSet(n);}
+  else{showMenu();}
+}else{
+  showMenu();
+}
+</script>
+</body>
+</html>
