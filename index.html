@@ -463,7 +463,46 @@ function nextCard(dir){
 function bindCard(){
   var c=document.getElementById('itCard');
   if(!c)return;
-  c.addEventListener('click',function(){if(!dragging)flip();dragging=false;});
+  var mouseStartX=0,mouseDragging=false,mouseDown=false,mouseMoved=false;
+
+  c.addEventListener('mousedown',function(e){
+    e.preventDefault();
+    mouseStartX=e.clientX;mouseDown=true;mouseDragging=false;mouseMoved=false;currentX=0;
+  });
+
+  function onMouseMove(e){
+    if(!mouseDown)return;
+    var dx=e.clientX-mouseStartX;
+    currentX=dx;
+    if(Math.abs(dx)>5){
+      mouseMoved=true;
+      if(flipped){
+        mouseDragging=true;
+        var cc=document.getElementById('itCard');
+        if(cc){cc.style.transition='none';cc.style.transform='translateX('+dx+'px) rotate('+(dx*0.04)+'deg)';}
+      }
+    }
+  }
+
+  function onMouseUp(e){
+    if(!mouseDown)return;
+    mouseDown=false;
+    var cc=document.getElementById('itCard');
+    if(mouseDragging&&Math.abs(currentX)>40&&flipped){
+      nextCard(currentX>0?1:-1);
+    } else if(mouseDragging&&cc){
+      cc.style.transition='transform .18s';cc.style.transform='none';
+    } else if(!mouseMoved){
+      flip();
+    }
+    mouseDragging=false;mouseMoved=false;
+    document.removeEventListener('mousemove',onMouseMove);
+    document.removeEventListener('mouseup',onMouseUp);
+  }
+
+  document.addEventListener('mousemove',onMouseMove);
+  document.addEventListener('mouseup',onMouseUp);
+
   c.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;dragging=false;currentX=0;},{passive:true});
   c.addEventListener('touchmove',function(e){
     var dx=e.touches[0].clientX-startX;currentX=dx;
@@ -472,14 +511,9 @@ function bindCard(){
   c.addEventListener('touchend',function(){
     if(dragging&&Math.abs(currentX)>40){nextCard(currentX>0?1:-1);}
     else if(dragging){c.style.transition='transform .18s';c.style.transform='none';}
+    else{flip();}
     setTimeout(function(){dragging=false;},40);
   });
-  var md=false;
-  c.addEventListener('mousedown',function(e){startX=e.clientX;md=true;dragging=false;currentX=0;});
-  function onmm(e){if(!md)return;var dx=e.clientX-startX;currentX=dx;var cc=document.getElementById('itCard');if(!cc){document.removeEventListener('mousemove',onmm);return;}if(Math.abs(dx)>8&&flipped){dragging=true;cc.style.transition='none';cc.style.transform='translateX('+dx+'px) rotate('+(dx*0.05)+'deg)';}}
-  function onmu(){if(!md)return;md=false;var cc=document.getElementById('itCard');if(cc&&dragging&&Math.abs(currentX)>40&&flipped){nextCard(currentX>0?1:-1);}else if(cc&&dragging){cc.style.transition='transform .18s';cc.style.transform='none';}setTimeout(function(){dragging=false;},40);document.removeEventListener('mousemove',onmm);document.removeEventListener('mouseup',onmu);}
-  document.addEventListener('mousemove',onmm);
-  document.addEventListener('mouseup',onmu);
 }
 
 var params=new URLSearchParams(window.location.search);
